@@ -1,47 +1,79 @@
 import streamlit as st
+from openai import OpenAI
 
 st.set_page_config(
     page_title="AI-Powered Student Knowledge Assistant",
-    page_icon="🎓",
-    layout="wide"
+    page_icon="🎓"
 )
 
 st.title("🎓 AI-Powered Student Knowledge Assistant")
 st.write("Your AI-powered study companion for notes, learning and planning.")
 
+# OpenAI API
+try:
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+except Exception:
+    client = None
+
+st.sidebar.title("📚 Menu")
+
 menu = st.sidebar.selectbox(
     "Choose an option",
-    ["🏠 Home", "🤖 AI Chatbot", "📄 Study Notes", "📚 Study Planner", "❓ Quiz Generator"]
+    [
+        "🏠 Home",
+        "🤖 AI Chatbot",
+        "📄 Study Notes",
+        "📚 Study Planner",
+        "❓ Quiz Generator"
+    ]
 )
 
 if menu == "🏠 Home":
     st.header("Welcome! 👋")
     st.write("Ask questions, organize your study notes and plan your learning.")
-    st.info("Select an option from the menu to get started.")
 
 elif menu == "🤖 AI Chatbot":
     st.header("🤖 AI Student Chatbot")
+
     question = st.text_input("Ask your study question:")
 
     if st.button("Get Answer"):
-        if question.strip():
-            st.success("Your question was received!")
-            st.write("AI response will be connected in the next version.")
-        else:
+        if not question:
             st.warning("Please enter a question.")
+        elif client is None:
+            st.error("OpenAI API key is not configured.")
+        else:
+            try:
+                with st.spinner("AI is thinking..."):
+                    response = client.responses.create(
+                        model="gpt-4.1-mini",
+                        input=f"""
+You are an AI Student Assistant.
+Give simple, clear and educational answers.
+
+Student Question:
+{question}
+"""
+                    )
+
+                st.success("AI Answer")
+                st.write(response.output_text)
+
+            except Exception as e:
+                st.error("AI response could not be generated.")
+                st.write(str(e))
 
 elif menu == "📄 Study Notes":
     st.header("📄 Study Notes")
+
     title = st.text_input("Note Title")
-    notes = st.text_area("Write your notes here:")
+    notes = st.text_area("Write your notes:")
 
     if st.button("Save Note"):
         if title and notes:
             st.success("Note saved successfully!")
-            st.write("###", title)
-            st.write(notes)
         else:
-            st.warning("Please enter both title and notes.")
+            st.warning("Please enter title and notes.")
 
 elif menu == "📚 Study Planner":
     st.header("📚 Study Planner")
@@ -61,10 +93,11 @@ elif menu == "📚 Study Planner":
 
 elif menu == "❓ Quiz Generator":
     st.header("❓ Quiz Generator")
+
     topic = st.text_input("Enter quiz topic:")
 
     if st.button("Generate Quiz"):
         if topic:
-            st.success(f"Quiz generation for '{topic}' will be connected to AI.")
+            st.info("AI Quiz Generator will be connected next.")
         else:
             st.warning("Please enter a topic.")
